@@ -223,10 +223,12 @@ func (hac *HACluster) ReplicateData(schema []*InfluxSchDb, start time.Time, end 
 			report := SyncDBRP(hac.Master, hac.Slave, db.Name, db.NewName, rp, &rn, start, end, db, hac.ChunkDuration, hac.MaxRetentionInterval)
 			if report == nil {
 				log.Errorf("Data Replication error in DB [%s] RP [%s] ", db, rn.Name)
+				return nil
 			}
 			if len(report.BadChunks) > 0 {
 				r, w, t := report.RWErrors()
 				log.Errorf("Data Replication error in DB [%s] RP [%s] | Registered %d Read %d Write | %d Total Errors", db, r, w, t)
+				return nil
 			}
 		}
 	}
@@ -245,10 +247,12 @@ func (hac *HACluster) ReplicateDataFull(schema []*InfluxSchDb) error {
 			report := SyncDBRP(hac.Master, hac.Slave, db.Name, db.NewName, rp, &rn, start, end, db, hac.ChunkDuration, hac.MaxRetentionInterval)
 			if report == nil {
 				log.Errorf("Data Replication error in DB [%s] RP [%s] ", db, rn.Name)
+				return nil
 			}
 			if len(report.BadChunks) > 0 {
 				r, w, t := report.RWErrors()
 				log.Errorf("Data Replication error in DB [%s] RP [%s] | Registered %d Read %d Write | %d Total Errors", db, r, w, t)
+				return nil
 			}
 		}
 	}

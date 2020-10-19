@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -137,6 +138,8 @@ func Sync(src *InfluxMonitor, dst *InfluxMonitor, sdb string, ddb string, srp *R
 	var dbpoints int64
 	var startsec, endsec int64
 	dbs := time.Now()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // Make sure it's called to release resources even if no errors
 
 	for i = 0; i < hLength; i++ {
 		wp := workerpool.New(MainConfig.General.NumWorkers)
@@ -166,6 +169,12 @@ func Sync(src *InfluxMonitor, dst *InfluxMonitor, sdb string, ddb string, srp *R
 
 			//add to the worker pool
 			wp.Submit(func() {
+				// Check if any error occurred in any other gorouties
+                select {
+                case <-ctx.Done():
+                    return
+                default:
+                }
 				log.Tracef("Processing measurement %s with schema #%+v", m, sch)
 				log.Debugf("processing Database %s Measurement %s from %d to %d", sdb, m, startsec, endsec)
 				getvalues := fmt.Sprintf("select * from  \"%v\" where time  > %vs and time < %vs group by *", m, startsec, endsec)
@@ -173,6 +182,7 @@ func Sync(src *InfluxMonitor, dst *InfluxMonitor, sdb string, ddb string, srp *R
 				if rerr != nil {
 					atomic.AddUint64(&readErrors, 1)
 					log.Errorf("error in read DB %s | Measurement %s | ERR: %s", sdb, m, rerr)
+					cancel()
 					return
 					//return err
 				}
@@ -183,6 +193,7 @@ func Sync(src *InfluxMonitor, dst *InfluxMonitor, sdb string, ddb string, srp *R
 				if werr != nil {
 					atomic.AddUint64(&writeErrors, 1)
 					log.Errorf("error in write DB %s | Measurement %s | ERR: %s", ddb, m, werr)
+					cancel()
 					return
 					//return err
 				}
@@ -208,6 +219,7 @@ func Sync(src *InfluxMonitor, dst *InfluxMonitor, sdb string, ddb string, srp *R
 		chuckReport = append(chuckReport, chrep)
 		if readErrors+writeErrors > 0 {
 			badChunkReport = append(badChunkReport, chrep)
+			break
 		}
 
 	}

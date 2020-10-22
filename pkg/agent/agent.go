@@ -112,6 +112,21 @@ func initCluster(master string, slave string) *HACluster {
 
 		}
 
+		if !masterFound {
+			idb := &config.InfluxDB{Release: "1x", Name: master, Location: master, AdminUser: "admin", AdminPasswd: "admin", Timeout: time.Duration(10) * time.Second}
+			MDB = &InfluxMonitor{cfg: idb, CheckInterval: MainConfig.General.CheckInterval}
+
+			cli, _, _, err := MDB.InitPing()
+			if err != nil {
+				masterAlive = false
+				log.Errorf("MasterDB[%s] has  problems :%s", master, err)
+			} else {
+				log.Infof("Found MasterDB[%s] by using argument as hostname", master)
+				masterFound = true
+			}
+			MDB.SetCli(cli)
+		}
+
 		if slaveFound && masterFound && masterAlive && slaveAlive {
 			return &HACluster{
 				Master:               MDB,

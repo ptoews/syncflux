@@ -113,7 +113,7 @@ func initCluster(master string, slave string) *HACluster {
 		}
 
 		if !masterFound {
-			idb := &config.InfluxDB{Release: "1x", Name: master, Location: master, AdminUser: "admin", AdminPasswd: "admin", Timeout: time.Duration(10) * time.Second}
+			idb := &config.InfluxDB{Release: "1x", Name: master, Location: master, AdminUser: "admin", AdminPasswd: "admin", Timeout: time.Duration(0)}
 			MDB = &InfluxMonitor{cfg: idb, CheckInterval: MainConfig.General.CheckInterval}
 
 			cli, _, _, err := MDB.InitPing()
